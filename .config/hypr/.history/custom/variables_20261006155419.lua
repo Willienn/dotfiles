@@ -1,0 +1,2 @@
+terminal = "kitty"
+browser = "librewolf"
