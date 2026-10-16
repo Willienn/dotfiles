@@ -1,0 +1,143 @@
+
+
+#root.root {
+	--tabs-normal-fg: #f4decd;
+	--tabs-discarded-title-opacity: 0.75;
+	--tabs-discarded-favicon-opacity: 0.75;
+	/* tamanhos (os seus) */
+	--tabs-height: 26px;
+	--tabs-margin: 4px;
+	--tabs-font: 14px sans-serif;
+	--tabs-count-font: 16px sans-serif;
+	--general-margin: 4px;
+	--general-border-radius: 0px;
+	--tabs-border-radius: 0px;
+	--nav-btn-border-radius: 0px;
+	--nav-hidden-btn-border-radius: 0px;
+	--btn-border-radius: 0px;
+	--ctx-menu-border-radius: 0px;
+	--ctx-menu-opt-border-radius: 0px;
+	--search-border-radius: 0px;
+	--bookmarks-border-radius: 0px;
+	--history-item-border-radius: 0px;
+	--notification-border-radius: 0px;
+	--slt-border-radius: 0px;
+	--ntb-border-radius: 0px;
+
+	/* paleta */
+	--accent: #ef934d;
+	--border: #3b403c;
+
+	--frame-bg: #151515;
+	--frame-fg: #f4decd;
+	--frame-el-overlay-hover-bg: #272a28;
+	--frame-el-overlay-clicked-bg: #3b403c;
+	--frame-el-overlay-selected-bg: #272a28;
+	--frame-el-overlay-selected-border: #ef934d;
+	--frame-scrollbar-color: #3b403c;
+
+	--toolbar-bg: #151515;
+	--toolbar-fg: #f4decd;
+	--toolbar-el-overlay-hover-bg: #272a28;
+	--toolbar-el-overlay-clicked-bg: #3b403c;
+	--toolbar-el-overlay-active-bg: #1e1f1e;
+	--toolbar-el-overlay-active-border: #ef934d;
+	--toolbar-el-overlay-selected-bg: #272a28;
+	--toolbar-el-overlay-selected-border: #ef934d;
+	--toolbar-scrollbar-color: #3b403c;
+
+	--active-el-bg: #1e1f1e;
+	--active-el-fg: #f4decd;
+	--active-el-overlay-hover-bg: #272a28;
+	--active-el-overlay-clicked-bg: #3b403c;
+	--active-el-shadow: none;
+
+	--tabs-normal-bg: transparent;
+	--tabs-normal-fg: #f4decd;
+	--tabs-activated-bg: #1e1f1e;
+	--tabs-activated-fg: #f4decd;
+	--tabs-activated-shadow: none;
+	--tabs-progress-bg: #ef934d;
+	--tabs-notification-badge-dot-bg: #ef934d;
+	--tabs-notification-badge-count-bg: #ef934d;
+	--tabs-notification-badge-count-fg: #151515;
+
+	--nav-btn-fg: #f4decd;
+	--nav-btn-accent: #ef934d;
+	--nav-btn-active-shadow: none;
+
+	--bookmarks-node-activated-fg: #f4decd;
+	--bookmarks-expanded-folder-bg: #1e1f1e;
+	--bookmarks-expanded-folder-shadow: none;
+
+	--popup-bg: #1e1f1e;
+	--popup-fg: #f4decd;
+	--popup-shadow: 0 0 0 1px #3b403c;
+	--popup-scrollbar-color: #3b403c;
+
+	--ctx-menu-bg: #1e1f1e;
+	--ctx-menu-fg: #f4decd;
+	--ctx-menu-separator: #3b403c;
+	--ctx-menu-shadow: 0 0 0 1px #3b403c;
+
+	--search-shadow: 0 0 0 1px #3b403c;
+
+	--notification-bg: #1e1f1e;
+	--notification-fg: #f4decd;
+
+	--badge-bg: #272a28;
+	--badge-fg: #f4decd;
+	--badge-urgent-bg: #f16e65;
+	--badge-urgent-fg: #151515;
+
+	--scroll-color: #3b403c;
+	--scroll-progress-bg: #ef934d;
+
+	--status-ok: #7ec97e;
+	--status-err: #f16e65;
+	--status-notice: #efbf71;
+	--status-active: #ef934d;
+}
+
+/* bordas laranjas que você tinha */
+.Tab[data-active="true"] .body {
+	border: 2px solid #ef934d !important;
+}
+
+.NavigationBar .main-items .nav-item[data-class="panel"] .name-box {
+	border-width: 2px !important;
+}
+
+.NavigationBar .nav-item[data-active="true"] {
+	border: 1px solid #ef934d !important;
+}
+
+.Tab .fav img,
+.Tab .fav svg {
+filter: grayscale(0.6) sepia(0.4) saturate(1.2) !important;
+}
+
+.Tab[data-audible="true"] .fav img,
+.Tab[data-audible="true"] .fav svg {
+	filter: none !important;
+}
+
+/* opcional: a aba ativa mostra a cor original */
+.Tab[data-active="true"] .fav img,
+.Tab[data-active="true"] .fav svg {
+	filter: none !important;
+}
+
+/* opcional: cor volta ao passar o mouse */
+.Tab:hover .fav img,
+.Tab:hover .fav svg {
+	filter: none !important;
+}
+
+.Tab .body,
+.Tab .fav img,
+.Tab .fav svg,
+.PinnedTab,
+.NavigationBar .nav-item {
+	transition: all 0.2s ease !important;
+}

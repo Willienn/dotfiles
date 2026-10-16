@@ -1,0 +1,53 @@
+#TabsToolbar { display: none !important; }
+#sidebar-panel-header { display: none !important; }
+#sidebar-box { padding-inline-start: 0px !important; }
+
+* { border-radius: 0px !important; }
+:root {
+	--toolbar-bgcolor: #151515 !important;
+	--toolbar-color: #f4decd !important;
+	--toolbar-field-background-color: #1e1f1e !important;
+	--toolbar-field-focus-background-color: #272a28 !important;
+	--toolbar-field-color: #f4decd !important;
+	--toolbar-field-focus-color: #f4decd !important;
+	--toolbar-field-border-color: #3b403c !important;
+	--toolbarbutton-hover-background: #272a28 !important;
+	--lwt-accent-color: #151515 !important;
+	--lwt-text-color: #f4decd !important;
+	--arrowpanel-background: #1e1f1e !important;
+	--arrowpanel-color: #f4decd !important;
+	--arrowpanel-border-color: #3b403c !important;
+	--sidebar-background-color: #151515 !important;
+	--sidebar-text-color: #f4decd !important;
+	--urlbarView-highlight-background: #ef934d !important;
+	--urlbarView-highlight-color: #151515 !important;
+}
+
+#navigator-toolbox, #nav-bar, #PersonalToolbar {
+	background: #151515 !important;
+	color: #f4decd !important;
+	border-color: #3b403c !important;
+}
+#sidebar-splitter {
+	width: 1px !important;
+	min-width: 1px !important;
+	background: #3b403c !important;
+	border: none !important;
+	opacity: 1 !important;
+}
+
+#sidebar-box {
+	border: none !important;
+	box-shadow: none !important;
+	margin: 0 !important;
+}
+
+#tabbrowser-tabbox,
+#tabbrowser-tabpanels,
+.browserContainer {
+	margin: 0 !important;
+	border: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	outline: none !important;
+}

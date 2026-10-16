@@ -23,6 +23,7 @@ if status is-interactive
     alias celar "printf '\033[2J\033[3J\033[1;1H'"
     alias claer "printf '\033[2J\033[3J\033[1;1H'"
     alias pamcan pacman
+    alias dot='git --git-dir=$HOME/.dotfiles --work-tree=$HOME'
     alias q 'qs -c ii'
     abbr -a filter --position anywhere '| grep -i'
     if test "$TERM" != "linux"
