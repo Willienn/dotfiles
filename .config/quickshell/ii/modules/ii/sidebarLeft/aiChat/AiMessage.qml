@@ -7,357 +7,312 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 
-Rectangle {
+Item {
     id: root
     property int messageIndex
     property var messageData
     property var messageInputField
 
-    property real messagePadding: 7
-    property real contentSpacing: 3
-
+    property real contentSpacing: 2
     property bool enableMouseSelection: false
     property bool renderMarkdown: true
     property bool editing: false
 
     property list<var> messageBlocks: StringUtils.splitMarkdownBlocks(root.messageData?.content)
 
+    property bool isUser: messageData?.role === 'user'
+    property bool isAssistant: messageData?.role === 'assistant'
+    property bool isInterface: messageData?.role === 'interface'
+    property bool hovered: hoverHandler.hovered || root.editing
+    
+    readonly property real maxBubbleWidth: mainColumn.width * 0.85
+    readonly property int contentChars: (root.messageData?.content ?? "").length
+    readonly property bool shortMessage: !(root.messageData?.content ?? "").includes("\n") && contentChars < 60
+    readonly property real estimatedBubbleWidth: Math.min(contentChars * 9 + 24, maxBubbleWidth)
+
     anchors.left: parent?.left
     anchors.right: parent?.right
-    implicitHeight: columnLayout.implicitHeight + root.messagePadding * 2
-
-    radius: Appearance.rounding.normal
-    color: Appearance.colors.colLayer1
+    implicitHeight: mainColumn.implicitHeight
 
     function saveMessage() {
         if (!root.editing) return;
-        // Get all Loader children (each represents a segment)
         const segments = messageContentColumnLayout.children
             .map(child => child.segment)
             .filter(segment => (segment));
-
-        // Reconstruct markdown
         const newContent = segments.map(segment => {
             if (segment.type === "code") {
                 const lang = segment.lang ? segment.lang : "";
-                // Remove trailing newlines
                 const code = segment.content.replace(/\n+$/, "");
                 return "```" + lang + "\n" + code + "\n```";
             } else {
                 return segment.content;
             }
         }).join("");
-
         root.editing = false
         root.messageData.content = newContent;
     }
 
     Keys.onPressed: (event) => {
-        if ( // Prevent de-select
-            event.key === Qt.Key_Control || 
-            event.key == Qt.Key_Shift || 
-            event.key == Qt.Key_Alt || 
-            event.key == Qt.Key_Meta
-        ) {
+        if (event.key === Qt.Key_Control || event.key === Qt.Key_Shift ||
+            event.key === Qt.Key_Alt || event.key === Qt.Key_Meta) {
             event.accepted = true
         }
-        // Ctrl + S to save
         if ((event.key === Qt.Key_S) && event.modifiers == Qt.ControlModifier) {
             root.saveMessage();
-            event.accepted = true;
+            event.accepted = true
         }
     }
 
-    ColumnLayout { // Main layout of the whole thing
-        id: columnLayout
+   HoverHandler {
+        id: hoverHandler
+    }
 
+    ColumnLayout {
+        id: mainColumn
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: messagePadding
-        spacing: root.contentSpacing
+        spacing: 4
 
-        Rectangle {
+        // === Header (assistant/interface only, subtle) ===
+        RowLayout {
             Layout.fillWidth: true
-            implicitWidth: headerRowLayout.implicitWidth + 4 * 2
-            implicitHeight: headerRowLayout.implicitHeight + 4 * 2
-            color: Appearance.colors.colSecondaryContainer
-            radius: Appearance.rounding.small
-        
-            RowLayout { // Header
-                id: headerRowLayout
-                anchors {
-                    fill: parent
-                    margins: 4
-                }
-                spacing: 18
+            Layout.leftMargin: 8
+            Layout.rightMargin: 8
+            Layout.topMargin: 4
+            spacing: 6
+            visible: !root.isUser
 
-                Item { // Name
-                    id: nameWrapper
-                    implicitHeight: Math.max(nameRowLayout.implicitHeight + 5 * 2, 30)
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
-
-                    RowLayout {
-                        id: nameRowLayout
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        spacing: 12
-
-                        Item {
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.fillHeight: true
-                            implicitWidth: messageData?.role == 'assistant' ? modelIcon.width : roleIcon.implicitWidth
-                            implicitHeight: messageData?.role == 'assistant' ? modelIcon.height : roleIcon.implicitHeight
-
-                            CustomIcon {
-                                id: modelIcon
-                                anchors.centerIn: parent
-                                visible: messageData?.role == 'assistant' && Ai.models[messageData?.model].icon
-                                width: Appearance.font.pixelSize.large
-                                height: Appearance.font.pixelSize.large
-                                source: messageData?.role == 'assistant' ? Ai.models[messageData?.model].icon :
-                                    messageData?.role == 'user' ? 'linux-symbolic' : 'desktop-symbolic'
-
-                                colorize: true
-                                color: Appearance.m3colors.m3onSecondaryContainer
-                            }
-
-                            MaterialSymbol {
-                                id: roleIcon
-                                anchors.centerIn: parent
-                                visible: !modelIcon.visible
-                                iconSize: Appearance.font.pixelSize.larger
-                                color: Appearance.m3colors.m3onSecondaryContainer
-                                text: messageData?.role == 'user' ? 'person' : 
-                                    messageData?.role == 'interface' ? 'settings' : 
-                                    messageData?.role == 'assistant' ? 'neurology' : 
-                                    'computer'
-                            }
-                        }
-
-                        StyledText {
-                            id: providerName
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.fillWidth: true
-                            elide: Text.ElideRight
-                            font.pixelSize: Appearance.font.pixelSize.normal
-                            color: Appearance.m3colors.m3onSecondaryContainer
-                            text: messageData?.role == 'assistant' ? Ai.models[messageData?.model].name :
-                                (messageData?.role == 'user' && SystemInfo.username) ? SystemInfo.username :
-                                Translation.tr("Interface")
-                        }
-                    }
-                }
-
-                Button { // Not visible to model
-                    id: modelVisibilityIndicator
-                    visible: messageData?.role == 'interface'
-                    implicitWidth: 16
-                    implicitHeight: 30
-                    Layout.alignment: Qt.AlignVCenter
-
-                    background: Item
-
-                    MaterialSymbol {
-                        id: notVisibleToModelText
-                        anchors.centerIn: parent
-                        iconSize: Appearance.font.pixelSize.small
-                        color: Appearance.colors.colSubtext
-                        text: "visibility_off"
-                    }
-                    StyledToolTip {
-                        text: Translation.tr("Not visible to model")
-                    }
-                }
-
-                ButtonGroup {
-                    spacing: 5
-
-                    AiMessageControlButton {
-                        id: regenButton
-                        buttonIcon: "refresh"
-                        visible: messageData?.role === 'assistant'
-
-                        onClicked: {
-                            Ai.regenerate(root.messageIndex)
-                        }
-                        
-                        StyledToolTip {
-                            text: Translation.tr("Regenerate")
-                        }
-                    }
-
-                    AiMessageControlButton {
-                        id: copyButton
-                        buttonIcon: activated ? "inventory" : "content_copy"
-
-                        onClicked: {
-                            Quickshell.clipboardText = root.messageData?.content
-                            copyButton.activated = true
-                            copyIconTimer.restart()
-                        }
-
-                        Timer {
-                            id: copyIconTimer
-                            interval: 1500
-                            repeat: false
-                            onTriggered: {
-                                copyButton.activated = false
-                            }
-                        }
-                        
-                        StyledToolTip {
-                            text: Translation.tr("Copy")
-                        }
-                    }
-                    AiMessageControlButton {
-                        id: editButton
-                        activated: root.editing
-                        enabled: root.messageData?.done ?? false
-                        buttonIcon: "edit"
-                        onClicked: {
-                            root.editing = !root.editing
-                            if (!root.editing) { // Save changes
-                                root.saveMessage()
-                            }
-                        }
-                        StyledToolTip {
-                            text: root.editing ? Translation.tr("Save") : Translation.tr("Edit")
-                        }
-                    }
-                    AiMessageControlButton {
-                        id: toggleMarkdownButton
-                        activated: !root.renderMarkdown
-                        buttonIcon: "code"
-                        onClicked: {
-                            root.renderMarkdown = !root.renderMarkdown
-                        }
-                        StyledToolTip {
-                            text: Translation.tr("View Markdown source")
-                        }
-                    }
-                    AiMessageControlButton {
-                        id: deleteButton
-                        buttonIcon: "close"
-                        onClicked: {
-                            Ai.removeMessage(root.messageIndex)
-                        }
-                        StyledToolTip {
-                            text: Translation.tr("Delete")
-                        }
-                    }
-                }
+            MaterialSymbol {
+                iconSize: Appearance.font.pixelSize.small
+                color: Appearance.colors.colSubtext
+                text: root.isAssistant ? "neurology" : "settings"
             }
-        }
-
-        Loader {
-            Layout.fillWidth: true
-            active: root.messageData?.localFilePath && root.messageData?.localFilePath.length > 0
-            sourceComponent: AttachedFileIndicator {
-                filePath: root.messageData?.localFilePath
-                canRemove: false
-            }
-        }
-
-        ColumnLayout { // Message content
-            id: messageContentColumnLayout
-            spacing: 0
-
-            Item {
+            StyledText {
                 Layout.fillWidth: true
-                implicitHeight: loadingIndicatorLoader.shown ? loadingIndicatorLoader.implicitHeight : 0
-                implicitWidth: loadingIndicatorLoader.implicitWidth
-                visible: implicitHeight > 0
+                elide: Text.ElideRight
+                text: root.isAssistant
+                    ? (Ai.models[root.messageData?.model]?.name ?? Translation.tr("Assistant"))
+                    : Translation.tr("Interface")
+                font.pixelSize: Appearance.font.pixelSize.smaller
+                color: Appearance.colors.colSubtext
+            }
+        }
 
-                Behavior on implicitHeight {
-                    animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
+        // === Content ===
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: bubble.height
+
+            Rectangle {
+                id: bubble
+                anchors.right: root.isUser ? parent.right : undefined
+                anchors.left: root.isUser ? undefined : parent.left
+
+                width: {
+                    // Estimativa de largura natural pelo conteúdo
+                    const content = root.messageData?.content ?? "";
+                    const hasNewline = content.includes("\n");
+                    const hasCode = content.includes("```");
+                    const charCount = content.length;
+                    const avgCharWidth = 7.5;
+                    const padding = root.isUser ? 20 : 0;
+                    const naturalWidth = charCount * avgCharWidth + padding;
+                    const maxWidth = parent.width * (root.isUser ? 0.95 : 1.0);                    if (hasNewline || hasCode || charCount > 60) return maxWidth;
+                    return Math.min(naturalWidth, maxWidth);
                 }
-                FadeLoader {
-                    id: loadingIndicatorLoader
-                    anchors.centerIn: parent
-                    shown: (root.messageBlocks.length < 1) && (!root.messageData.done)
-                    sourceComponent: MaterialLoadingIndicator {
-                        loading: true
+                height: contentColumn.implicitHeight + (root.isUser ? 20 : 0)
+
+                radius: root.isUser ? Appearance.rounding.normal : 0
+                color: root.isUser ? Appearance.colors.colLayer2 : "transparent"
+                clip: true
+                Behavior on height {
+                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                }
+
+                ColumnLayout {
+                    id: contentColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.leftMargin: root.isUser ? 10 : 0
+                    anchors.rightMargin: root.isUser ? 10 : 0
+                    anchors.topMargin: root.isUser ? 10 : 0
+                    spacing: root.contentSpacing
+
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.messageData?.localFilePath && root.messageData?.localFilePath.length > 0
+                        visible: active
+                        sourceComponent: AttachedFileIndicator {
+                            filePath: root.messageData?.localFilePath
+                            canRemove: false
+                        }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        implicitHeight: loadingIndicatorLoader.shown ? loadingIndicatorLoader.implicitHeight : 0
+                        visible: implicitHeight > 0
+                        Behavior on implicitHeight {
+                            animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
+                        }
+                        FadeLoader {
+                            id: loadingIndicatorLoader
+                            anchors.centerIn: parent
+                            shown: (root.messageBlocks.length < 1) && (!root.messageData.done)
+                            sourceComponent: MaterialLoadingIndicator {
+                                loading: true
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        id: messageContentColumnLayout
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        Repeater {
+                            model: ScriptModel {
+                                values: root.messageBlocks
+                            }
+                            delegate: DelegateChooser {
+                                id: messageDelegate
+                                role: "type"
+
+                                DelegateChoice { roleValue: "code"; MessageCodeBlock {
+                                    editing: root.editing
+                                    renderMarkdown: root.renderMarkdown
+                                    enableMouseSelection: root.enableMouseSelection
+                                    segmentContent: modelData.content
+                                    segmentLang: modelData.lang
+                                    messageData: root.messageData
+                                } }
+                                DelegateChoice { roleValue: "think"; MessageThinkBlock {
+                                    editing: root.editing
+                                    renderMarkdown: root.renderMarkdown
+                                    enableMouseSelection: root.enableMouseSelection
+                                    segmentContent: modelData.content
+                                    messageData: root.messageData
+                                    done: root.messageData?.done ?? false
+                                    completed: modelData.completed ?? false
+                                } }
+                                DelegateChoice { roleValue: "text"; MessageTextBlock {
+                                    editing: root.editing
+                                    renderMarkdown: root.renderMarkdown
+                                    enableMouseSelection: root.enableMouseSelection
+                                    segmentContent: modelData.content
+                                    messageData: root.messageData
+                                    done: root.messageData?.done ?? false
+                                    forceDisableChunkSplitting: root.messageData?.content.includes("```") ?? true
+                                } }
+                            }
+                        }
+                    }
+
+                    Flow {
+                        visible: root.messageData?.annotationSources?.length > 0
+                        spacing: 5
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignLeft
+                        Repeater {
+                            model: ScriptModel {
+                                values: root.messageData?.annotationSources || []
+                            }
+                            delegate: AnnotationSourceButton {
+                                required property var modelData
+                                displayText: modelData.text
+                                url: modelData.url
+                            }
+                        }
+                    }
+
+                    Flow {
+                        visible: root.messageData?.searchQueries?.length > 0
+                        spacing: 5
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignLeft
+                        Repeater {
+                            model: ScriptModel {
+                                values: root.messageData?.searchQueries || []
+                            }
+                            delegate: SearchQueryButton {
+                                required property var modelData
+                                query: modelData
+                            }
+                        }
                     }
                 }
             }
-            Repeater {
-                model: ScriptModel {
-                    values: root.messageBlocks
-                }
-                delegate: DelegateChooser {
-                    id: messageDelegate
-                    role: "type"
-
-                    DelegateChoice { roleValue: "code"; MessageCodeBlock {
-                        editing: root.editing
-                        renderMarkdown: root.renderMarkdown
-                        enableMouseSelection: root.enableMouseSelection
-                        segmentContent: modelData.content
-                        segmentLang: modelData.lang
-                        messageData: root.messageData
-                    } }
-                    DelegateChoice { roleValue: "think"; MessageThinkBlock {
-                        editing: root.editing
-                        renderMarkdown: root.renderMarkdown
-                        enableMouseSelection: root.enableMouseSelection
-                        segmentContent: modelData.content
-                        messageData: root.messageData
-                        done: root.messageData?.done ?? false
-                        completed: modelData.completed ?? false
-                    } }
-                    DelegateChoice { roleValue: "text"; MessageTextBlock {
-                        editing: root.editing
-                        renderMarkdown: root.renderMarkdown
-                        enableMouseSelection: root.enableMouseSelection
-                        segmentContent: modelData.content
-                        messageData: root.messageData
-                        done: root.messageData?.done ?? false
-                        forceDisableChunkSplitting: root.messageData?.content.includes("```") ?? true
-                    } }
-                }
-            }
         }
 
-        Flow { // Annotations
-            visible: root.messageData?.annotationSources?.length > 0
-            spacing: 5
+        // === Action buttons (hover only) ===
+        RowLayout {
             Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
+            Layout.leftMargin: 8
+            Layout.rightMargin: 8
+            Layout.bottomMargin: 2
+            spacing: 2
+            opacity: root.hovered ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 120 } }
 
-            Repeater {
-                model: ScriptModel {
-                    values: root.messageData?.annotationSources || []
+            Item { Layout.fillWidth: root.isUser }
+
+            ButtonGroup {
+                spacing: 2
+
+                AiMessageControlButton {
+                    id: regenButton
+                    visible: root.isAssistant
+                    buttonIcon: "refresh"
+                    onClicked: Ai.regenerate(root.messageIndex)
+                    StyledToolTip { text: Translation.tr("Regenerate") }
                 }
-                delegate: AnnotationSourceButton {
-                    required property var modelData
-                    displayText: modelData.text
-                    url: modelData.url
+
+                AiMessageControlButton {
+                    id: copyButton
+                    buttonIcon: activated ? "inventory" : "content_copy"
+                    onClicked: {
+                        Quickshell.clipboardText = root.messageData?.content
+                        copyButton.activated = true
+                        copyIconTimer.restart()
+                    }
+                    Timer {
+                        id: copyIconTimer
+                        interval: 1500
+                        repeat: false
+                        onTriggered: copyButton.activated = false
+                    }
+                    StyledToolTip { text: Translation.tr("Copy") }
+                }
+
+                AiMessageControlButton {
+                    id: editButton
+                    activated: root.editing
+                    enabled: root.messageData?.done ?? false
+                    buttonIcon: "edit"
+                    onClicked: {
+                        root.editing = !root.editing
+                        if (!root.editing) root.saveMessage()
+                    }
+                    StyledToolTip { text: root.editing ? Translation.tr("Save") : Translation.tr("Edit") }
+                }
+
+                AiMessageControlButton {
+                    id: toggleMarkdownButton
+                    visible: !root.isUser
+                    activated: !root.renderMarkdown
+                    buttonIcon: "code"
+                    onClicked: root.renderMarkdown = !root.renderMarkdown
+                    StyledToolTip { text: Translation.tr("View Markdown source") }
+                }
+
+                AiMessageControlButton {
+                    id: deleteButton
+                    buttonIcon: "close"
+                    onClicked: Ai.removeMessage(root.messageIndex)
+                    StyledToolTip { text: Translation.tr("Delete") }
                 }
             }
         }
-
-        Flow { // Search queries
-            visible: root.messageData?.searchQueries?.length > 0
-            spacing: 5
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignLeft
-
-            Repeater {
-                model: ScriptModel {
-                    values: root.messageData?.searchQueries || []
-                }
-                delegate: SearchQueryButton {
-                    required property var modelData
-                    query: modelData
-                }
-            }
-        }
-
     }
 }
-

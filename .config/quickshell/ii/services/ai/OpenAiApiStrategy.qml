@@ -2,9 +2,9 @@ import QtQuick
 
 ApiStrategy {
     property bool isReasoning: false
-    
+    property var pendingToolCalls: ({})
+
     function buildEndpoint(model: AiModel): string {
-        // console.log("[AI] Endpoint: " + model.endpoint);
         return model.endpoint;
     }
 
@@ -32,25 +32,19 @@ ApiStrategy {
     }
 
     function parseResponseLine(line, message) {
-        // Remove 'data: ' prefix if present and trim whitespace
         let cleanData = line.trim();
         if (cleanData.startsWith("data:")) {
             cleanData = cleanData.slice(5).trim();
         }
 
-        // console.log("[AI] OpenAI: Data:", cleanData);
-        
-        // Handle special cases
         if (!cleanData || cleanData.startsWith(":")) return {};
         if (cleanData === "[DONE]") {
             return { finished: true };
         }
-        
-        // Real stuff
+
         try {
             const dataJson = JSON.parse(cleanData);
 
-            // Error response handling
             if (dataJson.error) {
                 const errorMsg = `**Error**: ${dataJson.error.message || JSON.stringify(dataJson.error)}`;
                 message.rawContent += errorMsg;
@@ -58,10 +52,47 @@ ApiStrategy {
                 return { finished: true };
             }
 
-            let newContent = "";
+            const delta = dataJson.choices[0]?.delta;
+            const responseContent = delta?.content || dataJson.message?.content;
+            const responseReasoning = delta?.reasoning || delta?.reasoning_content;
 
-            const responseContent = dataJson.choices[0]?.delta?.content || dataJson.message?.content;
-            const responseReasoning = dataJson.choices[0]?.delta?.reasoning || dataJson.choices[0]?.delta?.reasoning_content;
+            // ---- Tool calls handling ----
+            if (delta?.tool_calls && delta.tool_calls.length > 0) {
+                for (const tc of delta.tool_calls) {
+                    const idx = tc.index ?? 0;
+                    if (!pendingToolCalls[idx]) {
+                        pendingToolCalls[idx] = {
+                            id: tc.id || "",
+                            name: tc.function?.name || "",
+                            args: ""
+                        };
+                    }
+                    if (tc.id) pendingToolCalls[idx].id = tc.id;
+                    if (tc.function?.name) pendingToolCalls[idx].name = tc.function.name;
+                    if (tc.function?.arguments) pendingToolCalls[idx].args += tc.function.arguments;
+                }
+            }
+
+            // Detect finish_reason == "tool_calls" → emit function call
+            const finishReason = dataJson.choices[0]?.finish_reason;
+            if (finishReason === "tool_calls" || (pendingToolCalls && Object.keys(pendingToolCalls).length > 0 && finishReason === "stop")) {
+                const keys = Object.keys(pendingToolCalls).sort();
+                if (keys.length > 0) {
+                    const first = pendingToolCalls[keys[0]];
+                    let argsParsed = {};
+                    try { argsParsed = JSON.parse(first.args || "{}"); } catch (e) { argsParsed = {}; }
+                    pendingToolCalls = ({});
+                    return {
+                        functionCall: {
+                            name: first.name,
+                            args: argsParsed
+                        },
+                        finished: true
+                    };
+                }
+            }
+
+            let newContent = "";
 
             if (responseContent && responseContent.length > 0) {
                 if (isReasoning) {
@@ -84,7 +115,6 @@ ApiStrategy {
             message.content += newContent;
             message.rawContent += newContent;
 
-            // Usage metadata
             if (dataJson.usage) {
                 return {
                     tokenUsage: {
@@ -109,12 +139,11 @@ ApiStrategy {
     }
     
     function onRequestFinished(message) {
-        // OpenAI format doesn't need special finish handling
         return {};
     }
     
     function reset() {
         isReasoning = false;
+        pendingToolCalls = ({});
     }
-
 }

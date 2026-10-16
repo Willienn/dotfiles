@@ -12,6 +12,7 @@ Scope { // Scope
     id: root
     property bool detach: false
     property bool pin: false
+    property bool aiTabActive: false
     property Component contentComponent: SidebarLeftContent {}
     property Item sidebarContent
 
@@ -89,7 +90,9 @@ Scope { // Scope
             visible: GlobalStates.sidebarLeftOpen
             
             property bool extend: false
-            property real sidebarWidth: panelWindow.extend ? Appearance.sizes.sidebarWidthExtended : Appearance.sizes.sidebarWidth
+            property real sidebarWidth: (panelWindow.extend || root.aiTabActive)
+                ? Appearance.sizes.sidebarWidthExtended
+                : Appearance.sizes.sidebarWidth
             property var contentParent: sidebarLeftBackground
 
             function hide() {

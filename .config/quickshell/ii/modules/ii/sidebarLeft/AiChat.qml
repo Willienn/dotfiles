@@ -58,22 +58,6 @@ Item {
             }
         },
         {
-            name: "tool",
-            description: Translation.tr("Set the tool to use for the model."),
-            execute: args => {
-                // console.log(args)
-                if (args.length == 0 || args[0] == "get") {
-                    Ai.addMessage(Translation.tr("Usage: %1tool TOOL_NAME").arg(root.commandPrefix), Ai.interfaceRole);
-                } else {
-                    const tool = args[0];
-                    const switched = Ai.setTool(tool);
-                    if (switched) {
-                        Ai.addMessage(Translation.tr("Tool set to: %1").arg(tool), Ai.interfaceRole);
-                    }
-                }
-            }
-        },
-        {
             name: "prompt",
             description: Translation.tr("Set the system prompt for the model."),
             execute: args => {
@@ -136,6 +120,24 @@ Item {
                 } else {
                     const temp = parseFloat(args[0]);
                     Ai.setTemperature(temp);
+                }
+            }
+        },
+        {
+            name: "web",
+            description: Translation.tr("Toggle automatic web search before each message"),
+            execute: args => {
+                if (args.length === 0) {
+                    Ai.setWebSearchEnabled(!Ai.webSearchEnabled);
+                    Ai.addMessage(Translation.tr("Web search: %1").arg(Ai.webSearchEnabled ? "ON" : "OFF"), Ai.interfaceRole);
+                } else if (args[0] === "on") {
+                    Ai.setWebSearchEnabled(true);
+                    Ai.addMessage(Translation.tr("Web search: ON"), Ai.interfaceRole);
+                } else if (args[0] === "off") {
+                    Ai.setWebSearchEnabled(false);
+                    Ai.addMessage(Translation.tr("Web search: OFF"), Ai.interfaceRole);
+                } else {
+                    Ai.addMessage(Translation.tr("Usage: %1web [on|off]").arg(root.commandPrefix), Ai.interfaceRole);
                 }
             }
         },
@@ -364,15 +366,6 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 mouseScrollFactor: Config.options.interactions.scrolling.mouseScrollFactor * 1.4
 
                 property int lastResponseLength: 0
-                // onContentHeightChanged: {
-                //     if (atYEnd)
-                //         Qt.callLater(positionViewAtEnd);
-                // }
-                // onCountChanged: {
-                //     // Auto-scroll when new messages are added
-                //     if (atYEnd)
-                //         Qt.callLater(positionViewAtEnd);
-                // }
 
                 add: null // Prevent function calls from being janky
 
@@ -601,25 +594,6 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                                         description: Translation.tr(`Load chat from %1`).arg(file.target)
                                     };
                                 });
-                            } else if (messageInputField.text.startsWith(`${root.commandPrefix}tool`)) {
-                                root.suggestionQuery = messageInputField.text.split(" ")[1] ?? "";
-                                const toolResults = Fuzzy.go(root.suggestionQuery, Ai.availableTools.map(tool => {
-                                    return {
-                                        name: Fuzzy.prepare(tool),
-                                        obj: tool
-                                    };
-                                }), {
-                                    all: true,
-                                    key: "name"
-                                });
-                                root.suggestionList = toolResults.map(tool => {
-                                    const toolName = tool.target;
-                                    return {
-                                        name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "tool ") : ""}${tool.target}`,
-                                        displayName: toolName,
-                                        description: Ai.toolDescriptions[toolName]
-                                    };
-                                });
                             } else if (messageInputField.text.startsWith(root.commandPrefix)) {
                                 root.suggestionQuery = messageInputField.text;
                                 root.suggestionList = root.allCommands.filter(cmd => cmd.name.startsWith(messageInputField.text.substring(1))).map(cmd => {
@@ -753,11 +727,40 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                     tooltipText: Translation.tr("Current model: %1\nSet it with %2model MODEL").arg(Ai.getModel().name).arg(root.commandPrefix)
                 }
 
-                ApiInputBoxIndicator {
-                    // Tool indicator
-                    icon: "service_toolbox"
-                    text: Ai.currentTool.charAt(0).toUpperCase() + Ai.currentTool.slice(1)
-                    tooltipText: Translation.tr("Current tool: %1\nSet it with %2tool TOOL").arg(Ai.currentTool).arg(root.commandPrefix)
+                Rectangle {
+                    id: webSearchToggle
+                    Layout.alignment: Qt.AlignVCenter
+                    implicitWidth: 26
+                    implicitHeight: 26
+                    radius: Appearance.rounding.small
+                    color: Ai.webSearchEnabled
+                        ? Appearance.m3colors.m3primaryContainer
+                        : Appearance.colors.colLayer2
+                    Behavior on color { ColorAnimation { duration: 120 } }
+
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        iconSize: 16
+                        color: Ai.webSearchEnabled
+                            ? Appearance.m3colors.m3onPrimaryContainer
+                            : Appearance.colors.colSubtext
+                        text: "travel_explore"
+                    }
+
+                    MouseArea {
+                        id: webSearchMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Ai.setWebSearchEnabled(!Ai.webSearchEnabled)
+                    }
+
+                    StyledToolTip {
+                        text: Ai.webSearchEnabled
+                            ? Translation.tr("Web search: ON\nResultados são buscados antes de cada resposta.\nClique para desativar.")
+                            : Translation.tr("Web search: OFF\nClique para buscar na web antes de cada resposta.")
+                        alternativeVisibleCondition: webSearchMouse.containsMouse
+                    }
                 }
 
                 Item {

@@ -15,30 +15,31 @@ Item {
     property int sidebarPadding: 10
     anchors.fill: parent
 
-    // Abas originais (desligadas)
-    property bool aiChatEnabled: false
-    property bool translatorEnabled: false
-    property bool animeEnabled: false
-    property bool animeCloset: true
-
-    // Abas customizadas
+    // Abas
+    property bool aiChatEnabled: true
     property bool portsEnabled: true
     property bool monitorEnabled: true
     property bool updatesEnabled: true
     property bool dotfilesEnabled: true
-    property bool customTabsEnabled: root.portsEnabled || root.monitorEnabled
-        || root.updatesEnabled || root.dotfilesEnabled
 
+    // A ordem aqui precisa bater com a ordem de contentChildren
     property var tabButtonList: [
         ...(root.aiChatEnabled ? [{"icon": "neurology", "name": Translation.tr("Intelligence")}] : []),
-        ...(root.translatorEnabled ? [{"icon": "translate", "name": Translation.tr("Translator")}] : []),
         ...(root.portsEnabled ? [{"icon": "lan", "name": "Portas"}] : []),
         ...(root.monitorEnabled ? [{"icon": "monitor_heart", "name": "Sistema"}] : []),
         ...(root.updatesEnabled ? [{"icon": "update", "name": "Atualizações"}] : []),
-        ...(root.dotfilesEnabled ? [{"icon": "folder_managed", "name": "Dotfiles"}] : []),
-        ...((root.animeEnabled && !root.animeCloset) ? [{"icon": "bookmark_heart", "name": Translation.tr("Anime")}] : [])
+        ...(root.dotfilesEnabled ? [{"icon": "folder_managed", "name": "Dotfiles"}] : [])
     ]
+    // Notifica o pai quando a aba de IA está ativa
     property int tabCount: swipeView.count
+    readonly property bool aiTabActive: root.aiChatEnabled && swipeView.currentIndex === 0
+
+    Component.onCompleted: {
+        if (scopeRoot) scopeRoot.aiTabActive = aiTabActive;
+    }
+    onAiTabActiveChanged: {
+        if (scopeRoot) scopeRoot.aiTabActive = aiTabActive
+    }
 
     function focusActiveItem() {
         swipeView.currentItem.forceActiveFocus()
@@ -76,12 +77,10 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentWidth > width
 
-            // Rola pra deixar a aba atual visível
             function scrollToCurrentTab() {
                 const maxScroll = Math.max(0, contentWidth - width);
                 if (root.tabCount <= 1 || maxScroll <= 0) return;
                 const idx = Math.max(0, Math.min(root.tabCount - 1, swipeView.currentIndex));
-                // Distribui linearmente: índice 0 -> 0, último -> maxScroll
                 contentX = (idx / (root.tabCount - 1)) * maxScroll;
             }
 
@@ -125,6 +124,10 @@ Item {
                 spacing: 10
                 currentIndex: tabBar.currentIndex
 
+                onCurrentIndexChanged: {
+                    if (scopeRoot) scopeRoot.aiTabActive = root.aiTabActive;
+                }
+
                 clip: true
                 layer.enabled: true
                 layer.effect: OpacityMask {
@@ -137,33 +140,18 @@ Item {
 
                 contentChildren: [
                     ...(root.aiChatEnabled ? [aiChat.createObject()] : []),
-                    ...(root.translatorEnabled ? [translator.createObject()] : []),
                     ...(root.portsEnabled ? [ports.createObject()] : []),
                     ...(root.monitorEnabled ? [sysMonitor.createObject()] : []),
                     ...(root.updatesEnabled ? [updates.createObject()] : []),
                     ...(root.dotfilesEnabled ? [dotfiles.createObject()] : []),
-                    ...((root.tabButtonList.length === 0 || (!root.aiChatEnabled && !root.translatorEnabled && !root.customTabsEnabled && root.animeCloset)) ? [placeholder.createObject()] : []),
-                    ...(root.animeEnabled ? [anime.createObject()] : []),
                 ]
             }
         }
 
         Component { id: aiChat; AiChat {} }
-        Component { id: translator; Translator {} }
         Component { id: ports; Ports {} }
         Component { id: sysMonitor; SystemMonitor {} }
         Component { id: updates; Updates {} }
         Component { id: dotfiles; Dotfiles {} }
-        Component { id: anime; Anime {} }
-        Component {
-            id: placeholder
-            Item {
-                StyledText {
-                    anchors.centerIn: parent
-                    text: root.animeCloset ? Translation.tr("Nothing") : Translation.tr("Enjoy your empty sidebar...")
-                    color: Appearance.colors.colSubtext
-                }
-            }
-        }
     }
 }
