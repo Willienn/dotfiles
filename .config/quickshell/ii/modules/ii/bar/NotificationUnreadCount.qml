@@ -19,7 +19,7 @@ MaterialSymbol {
             rightMargin: root.showUnreadCount ? 0 : 1
             topMargin: root.showUnreadCount ? 0 : 3
         }
-        radius: Appearance.rounding.full
+        radius: 2
         color: Appearance.colors.colOnLayer0
         z: 1
 

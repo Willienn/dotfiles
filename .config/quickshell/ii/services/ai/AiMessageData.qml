@@ -21,4 +21,10 @@ QtObject {
     property string functionResponse
     property bool functionPending: false
     property bool visibleToUser: true
+
+    // Tool calling (OpenAI format)
+    // Array of {id, type, function: {name, arguments}}
+    property var tool_calls: []
+    // For role: "tool" messages — matches the id of the tool_call it responds to
+    property string tool_call_id
 }

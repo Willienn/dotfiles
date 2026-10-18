@@ -17,7 +17,7 @@ RippleButton {
     }
 
     background.anchors.fill: button
-    buttonRadius: Appearance.rounding.full
+    buttonRadius: 2
     colBackground: Appearance.colors.colLayer2
     colBackgroundHover: Appearance.colors.colLayer2Hover
     colRipple: Appearance.colors.colLayer2Active

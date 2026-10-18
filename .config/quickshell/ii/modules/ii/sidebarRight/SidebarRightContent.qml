@@ -218,7 +218,7 @@ Item {
                 left: parent.left
             }
             color: Appearance.colors.colLayer1
-            radius: height / 2
+            radius: 2
             implicitWidth: uptimeRow.implicitWidth + 24
             implicitHeight: uptimeRow.implicitHeight + 8
             
@@ -254,6 +254,10 @@ Item {
             }
             color: Appearance.colors.colLayer1
             padding: 4
+            topLeftRadius: 2
+            topRightRadius: 2
+            bottomLeftRadius: 2
+            bottomRightRadius: 2
 
             QuickToggleButton {
                 toggled: root.editMode

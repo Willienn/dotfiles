@@ -17,7 +17,7 @@ Item {
         anchors.fill: quoteBox
         horizontalOffset: 0
         verticalOffset: 2
-        radius: 12
+        radius: 2
         samples: radius * 2 + 1
         color: Appearance.colors.colShadow
         transparentBorder: true

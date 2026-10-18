@@ -70,7 +70,7 @@ Rectangle {
                 elide: Text.ElideRight
                 text: entry.killable
                     ? entry.portInfo.name + (entry.portInfo.extraCount > 0 ? ` +${entry.portInfo.extraCount}` : "")
-                    : "Processo do sistema"
+                    : "Processo de outro usuário"
                 color: entry.killable ? Appearance.colors.colOnLayer1 : Appearance.colors.colSubtext
             }
             StyledText {
@@ -84,10 +84,11 @@ Rectangle {
         }
 
         PortActionButton {
-            visible: entry.portInfo.proto === "tcp"
-            icon: "open_in_new"
-            onClicked: entry.openRequested()
-        }
+    visible: entry.portInfo.proto === "tcp"
+        && entry.portInfo.addresses.some(a => ["127.0.0.1", "::1", "0.0.0.0", "::", "*"].includes(a))
+    icon: "open_in_new"
+    onClicked: entry.openRequested()
+}
 
         PortActionButton {
             icon: entry.armed ? "check" : "close"

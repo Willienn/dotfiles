@@ -54,7 +54,7 @@ Item {
         color: Appearance.colors.colSecondaryContainer
         implicitWidth: contentItem.children[root.currentIndex]?.implicitWidth ?? 0
         implicitHeight: contentItem.children[root.currentIndex]?.implicitHeight ?? 0
-        radius: height / 2
+        radius: 2
         // Animation
         property Item targetItem: contentItem.children[root.currentIndex]
         AnimatedTabIndexPair {

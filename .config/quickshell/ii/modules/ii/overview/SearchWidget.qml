@@ -110,7 +110,7 @@ Item { // Wrapper
         clip: true
         implicitWidth: columnLayout.implicitWidth
         implicitHeight: columnLayout.implicitHeight
-        radius: searchBar.height / 2 + searchBar.verticalPadding
+        radius: 2
         color: Appearance.colors.colBackgroundSurfaceContainer
 
         Behavior on implicitHeight {
@@ -130,12 +130,12 @@ Item { // Wrapper
             // clip: true
             layer.enabled: true
             layer.effect: OpacityMask {
-                maskSource: Rectangle {
-                    width: searchWidgetContent.width
-                    height: searchWidgetContent.width
-                    radius: searchWidgetContent.radius
-                }
-            }
+    maskSource: Rectangle {
+        width: searchWidgetContent.width
+        height: searchWidgetContent.width
+        radius: 2
+    }
+}
 
             SearchBar {
                 id: searchBar

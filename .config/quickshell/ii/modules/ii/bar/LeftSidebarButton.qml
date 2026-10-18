@@ -17,7 +17,7 @@ RippleButton {
     property real buttonPadding: 5
     implicitWidth: distroIcon.width + buttonPadding * 2
     implicitHeight: distroIcon.height + buttonPadding * 2
-    buttonRadius: Appearance.rounding.full
+    buttonRadius: 2
     colBackgroundHover: Appearance.colors.colLayer1Hover
     colRipple: Appearance.colors.colLayer1Active
     colBackgroundToggled: Appearance.colors.colSecondaryContainer
@@ -72,7 +72,7 @@ RippleButton {
             }
             implicitWidth: 8
             implicitHeight: 8
-            radius: Appearance.rounding.full
+            radius: 2
             color: Appearance.colors.colTertiary
 
             Behavior on opacity {

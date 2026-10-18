@@ -96,7 +96,7 @@ Rectangle {
         anchors.fill: image
         sourceComponent: GaussianBlur {
             source: image
-            radius: 35
+            radius: 2
             samples: radius * 2 + 1
 
             Rectangle {

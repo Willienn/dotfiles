@@ -22,8 +22,8 @@ TabBar {
             id: activeIndicator
             z: 9999
             anchors.bottom: parent.bottom
-            topLeftRadius: height
-            topRightRadius: height
+            topLeftRadius: 2
+            topRightRadius: 2
             bottomLeftRadius: 0
             bottomRightRadius: 0
             color: Appearance.colors.colPrimary

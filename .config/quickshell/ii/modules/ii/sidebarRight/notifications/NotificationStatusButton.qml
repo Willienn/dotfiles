@@ -12,7 +12,7 @@ GroupButton {
     baseWidth: content.implicitWidth + 46
     clickedWidth: baseWidth + 6
 
-    buttonRadius: baseHeight / 2
+    buttonRadius: 2
     buttonRadiusPressed: Appearance.rounding.small
     colBackground: Appearance.colors.colLayer2
     colBackgroundHover: Appearance.colors.colLayer2Hover

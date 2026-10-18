@@ -9,8 +9,12 @@ import Quickshell
 
 Item {
     id: root
-    property int messageIndex
-    property var messageData
+
+    // IDs das mensagens que formam este turno (vem de Ai.turns)
+    property string turnKey
+    // Resolvido ao vivo no singleton (não depende do ScriptModel repassar objetos)
+    readonly property var messageIds: Ai.idsForTurn(root.turnKey)
+    readonly property int messageIndex: Ai.messageIDs.indexOf(root.messageIds[0])
     property var messageInputField
 
     property real contentSpacing: 2
@@ -18,17 +22,76 @@ Item {
     property bool renderMarkdown: true
     property bool editing: false
 
-    property list<var> messageBlocks: StringUtils.splitMarkdownBlocks(root.messageData?.content)
+    // Mensagens do turno, sem undefined (protege contra ordem de atualização)
+    readonly property var turnMessages: root.messageIds
+        .map(id => Ai.messageByID[id])
+        .filter(m => m !== undefined && m !== null)
+
+    // Última mensagem do turno (done, anotações, pendingAction)
+    readonly property var messageData: turnMessages.length > 0
+        ? turnMessages[turnMessages.length - 1] : null
+    // Primeira mensagem do turno (nome do modelo)
+    readonly property var firstData: turnMessages.length > 0 ? turnMessages[0] : null
 
     property bool isUser: messageData?.role === 'user'
     property bool isAssistant: messageData?.role === 'assistant'
     property bool isInterface: messageData?.role === 'interface'
     property bool hovered: hoverHandler.hovered || root.editing
-    
-    readonly property real maxBubbleWidth: mainColumn.width * 0.85
-    readonly property int contentChars: (root.messageData?.content ?? "").length
-    readonly property bool shortMessage: !(root.messageData?.content ?? "").includes("\n") && contentChars < 60
-    readonly property real estimatedBubbleWidth: Math.min(contentChars * 9 + 24, maxBubbleWidth)
+    readonly property bool canEdit: root.turnMessages.length === 1
+
+    // Conteúdo: junta todas as mensagens de assistant do turno
+    readonly property string displayContent: {
+        if (!root.isAssistant) return root.messageData?.content ?? "";
+        let all = "";
+        for (const msg of root.turnMessages) {
+            if (msg.role !== "assistant") continue;
+            let c = msg.content ?? "";
+            const opens = (c.match(/<think>/g) || []).length;
+            const closes = (c.match(/<\/think>/g) || []).length;
+            for (let k = closes; k < opens; k++) c += "\n</think>";
+            if (c.length > 0) {
+                all += c;
+                if (!c.endsWith("\n")) all += "\n\n";
+            }
+        }
+        // Remove blocos de ação/json do texto exibido
+        return all.replace(/```(?:action|json)[\s\S]*?(?:```|$)/g, "").trim();
+    }
+
+    // Chips de ação: acumula todas as ações do turno
+    readonly property var actionNames: {
+        if (!root.isAssistant) return [];
+        const names = [];
+        for (const msg of root.turnMessages) {
+            if (msg.role !== "assistant") continue;
+            // Tool calling nativo (Ollama/OpenAI): nomes vêm de msg.tool_calls
+            for (const tc of (msg.tool_calls ?? [])) {
+                names.push(tc?.function?.name ?? "?");
+            }
+            // Protocolo de texto (```action)
+            const re = /```(?:action|json)\s*([\s\S]*?)```/g; // regex novo por mensagem
+            const raw = msg.rawContent ?? "";
+            let match;
+            while ((match = re.exec(raw)) !== null) {
+                try {
+                    const parsed = JSON.parse(match[1]);
+                    (Array.isArray(parsed) ? parsed : [parsed]).forEach(p => names.push(p?.name ?? "?"));
+                } catch (e) {
+                    names.push("?");
+                }
+            }
+        }
+        return names;
+    }
+
+    readonly property string actionName: root.actionNames.length === 0 ? ""
+        : (root.actionNames.length === 1 ? root.actionNames[0]
+            : `${root.actionNames.length} ações: ${root.actionNames.join(", ")}`)
+    readonly property bool hasPendingAction: root.isAssistant
+        && Ai.pendingAction !== null
+        && root.turnMessages.some(m => m === Ai.pendingAction.message)
+
+    property list<var> messageBlocks: StringUtils.splitMarkdownBlocks(root.displayContent)
 
     anchors.left: parent?.left
     anchors.right: parent?.right
@@ -63,7 +126,10 @@ Item {
         }
     }
 
-   HoverHandler {
+    // DEBUG temporário: remova depois que funcionar
+    Component.onCompleted: console.log("[AiMessage] key=" + root.turnKey + " ids=" + JSON.stringify(root.messageIds) + " msgs=" + root.turnMessages.length)
+
+    HoverHandler {
         id: hoverHandler
     }
 
@@ -73,7 +139,6 @@ Item {
         anchors.right: parent.right
         spacing: 4
 
-        // === Header (assistant/interface only, subtle) ===
         RowLayout {
             Layout.fillWidth: true
             Layout.leftMargin: 8
@@ -91,14 +156,13 @@ Item {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
                 text: root.isAssistant
-                    ? (Ai.models[root.messageData?.model]?.name ?? Translation.tr("Assistant"))
+                    ? (Ai.models[root.firstData?.model]?.name ?? Translation.tr("Assistant"))
                     : Translation.tr("Interface")
                 font.pixelSize: Appearance.font.pixelSize.smaller
                 color: Appearance.colors.colSubtext
             }
         }
 
-        // === Content ===
         Item {
             Layout.fillWidth: true
             implicitHeight: bubble.height
@@ -109,15 +173,15 @@ Item {
                 anchors.left: root.isUser ? undefined : parent.left
 
                 width: {
-                    // Estimativa de largura natural pelo conteúdo
-                    const content = root.messageData?.content ?? "";
+                    const content = root.displayContent;
                     const hasNewline = content.includes("\n");
                     const hasCode = content.includes("```");
                     const charCount = content.length;
                     const avgCharWidth = 7.5;
                     const padding = root.isUser ? 20 : 0;
                     const naturalWidth = charCount * avgCharWidth + padding;
-                    const maxWidth = parent.width * (root.isUser ? 0.95 : 1.0);                    if (hasNewline || hasCode || charCount > 60) return maxWidth;
+                    const maxWidth = parent.width * (root.isUser ? 0.95 : 1.0);
+                    if (hasNewline || hasCode || charCount > 60) return maxWidth;
                     return Math.min(naturalWidth, maxWidth);
                 }
                 height: contentColumn.implicitHeight + (root.isUser ? 20 : 0)
@@ -141,10 +205,10 @@ Item {
 
                     Loader {
                         Layout.fillWidth: true
-                        active: root.messageData?.localFilePath && root.messageData?.localFilePath.length > 0
+                        active: (root.messageData?.localFilePath ?? "").length > 0
                         visible: active
                         sourceComponent: AttachedFileIndicator {
-                            filePath: root.messageData?.localFilePath
+                            filePath: root.messageData?.localFilePath ?? ""
                             canRemove: false
                         }
                     }
@@ -159,7 +223,7 @@ Item {
                         FadeLoader {
                             id: loadingIndicatorLoader
                             anchors.centerIn: parent
-                            shown: (root.messageBlocks.length < 1) && (!root.messageData.done)
+                            shown: (root.messageBlocks.length < 1) && (!(root.messageData?.done ?? true))
                             sourceComponent: MaterialLoadingIndicator {
                                 loading: true
                             }
@@ -203,8 +267,52 @@ Item {
                                     segmentContent: modelData.content
                                     messageData: root.messageData
                                     done: root.messageData?.done ?? false
-                                    forceDisableChunkSplitting: root.messageData?.content.includes("```") ?? true
+                                    forceDisableChunkSplitting: root.displayContent.includes("```")
                                 } }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        visible: root.actionName.length > 0
+                        Layout.fillWidth: true
+                        Layout.topMargin: 4
+                        spacing: 6
+
+                        MaterialSymbol {
+                            iconSize: Appearance.font.pixelSize.normal
+                            color: Appearance.colors.colSubtext
+                            text: "bolt"
+                        }
+                        StyledText {
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            font.pixelSize: Appearance.font.pixelSize.smaller
+                            font.family: Appearance.font.family.monospace
+                            color: Appearance.colors.colSubtext
+                            text: root.hasPendingAction ? Ai.pendingAction.summary : root.actionName
+                        }
+                        Loader {
+                            active: root.hasPendingAction
+                            visible: active
+                            sourceComponent: ButtonGroup {
+                                GroupButton {
+                                    contentItem: StyledText {
+                                        text: Translation.tr("Reject")
+                                        font.pixelSize: Appearance.font.pixelSize.small
+                                        color: Appearance.colors.colOnLayer2
+                                    }
+                                    onClicked: Ai.denyAction()
+                                }
+                                GroupButton {
+                                    toggled: true
+                                    contentItem: StyledText {
+                                        text: Translation.tr("Approve")
+                                        font.pixelSize: Appearance.font.pixelSize.small
+                                        color: Appearance.m3colors.m3onPrimary
+                                    }
+                                    onClicked: Ai.approveAction()
+                                }
                             }
                         }
                     }
@@ -245,7 +353,6 @@ Item {
             }
         }
 
-        // === Action buttons (hover only) ===
         RowLayout {
             Layout.fillWidth: true
             Layout.leftMargin: 8
@@ -272,7 +379,7 @@ Item {
                     id: copyButton
                     buttonIcon: activated ? "inventory" : "content_copy"
                     onClicked: {
-                        Quickshell.clipboardText = root.messageData?.content
+                        Quickshell.clipboardText = root.displayContent
                         copyButton.activated = true
                         copyIconTimer.restart()
                     }
@@ -288,7 +395,7 @@ Item {
                 AiMessageControlButton {
                     id: editButton
                     activated: root.editing
-                    enabled: root.messageData?.done ?? false
+                    enabled: (root.messageData?.done ?? false) && root.canEdit
                     buttonIcon: "edit"
                     onClicked: {
                         root.editing = !root.editing
@@ -309,7 +416,12 @@ Item {
                 AiMessageControlButton {
                     id: deleteButton
                     buttonIcon: "close"
-                    onClicked: Ai.removeMessage(root.messageIndex)
+                    onClicked: {
+                        // Remove o turno inteiro, incluindo mensagens tool no meio
+                        const first = Ai.messageIDs.indexOf(root.messageIds[0]);
+                        const last = Ai.messageIDs.indexOf(root.messageIds[root.messageIds.length - 1]);
+                        for (let i = last; i >= first; i--) Ai.removeMessage(i);
+                    }
                     StyledToolTip { text: Translation.tr("Delete") }
                 }
             }

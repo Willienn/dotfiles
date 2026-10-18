@@ -114,7 +114,6 @@ Item {
             name: "temp",
             description: Translation.tr("Set temperature (randomness) of the model. Values range between 0 to 2 for Gemini, 0 to 1 for other models. Default is 0.5."),
             execute: args => {
-                // console.log(args)
                 if (args.length == 0 || args[0] == "get") {
                     Ai.printTemperature();
                 } else {
@@ -142,66 +141,23 @@ Item {
             }
         },
         {
-            name: "test",
-            description: Translation.tr("Markdown test"),
+            name: "approve",
+            description: Translation.tr("Approve the pending system action"),
             execute: () => {
-                Ai.addMessage(`
-<think>
-A longer think block to test revealing animation
-OwO wem ipsum dowo sit amet, consekituwet awipiscing ewit, sed do eiuwsmod tempow inwididunt ut wabowe et dowo mawa. Ut enim ad minim weniam, quis nostwud exeucitation uwuwamcow bowowis nisi ut awiquip ex ea commowo consequat. Duuis aute iwuwe dowo in wepwependewit in wowuptate velit esse ciwwum dowo eu fugiat nuwa pawiatuw. Excepteuw sint occaecat cupidatat non pwowoident, sunt in cuwpa qui officia desewunt mowit anim id est wabowum. Meouw! >w<
-Mowe uwu wem ipsum!
-</think>
-## ✏️ Markdown test
-### Formatting
-
-- *Italic*, \`Monospace\`, **Bold**, [Link](https://example.com)
-- Arch lincox icon <img src="${Quickshell.shellPath("assets/icons/arch-symbolic.svg")}" height="${Appearance.font.pixelSize.small}"/>
-
-### Table
-
-Quickshell vs AGS/Astal
-
-|                          | Quickshell       | AGS/Astal         |
-|--------------------------|------------------|-------------------|
-| UI Toolkit               | Qt               | Gtk3/Gtk4         |
-| Language                 | QML              | Js/Ts/Lua         |
-| Reactivity               | Implied          | Needs declaration |
-| Widget placement         | Mildly difficult | More intuitive    |
-| Bluetooth & Wifi support | ❌               | ✅                |
-| No-delay keybinds        | ✅               | ❌                |
-| Development              | New APIs         | New syntax        |
-
-### Code block
-
-Just a hello world...
-
-\`\`\`cpp
-#include <bits/stdc++.h>
-// This is intentionally very long to test scrolling
-const std::string GREETING = \"UwU\";
-int main(int argc, char* argv[]) {
-    std::cout << GREETING;
-}
-\`\`\`
-
-### LaTeX
-
-
-Inline w/ dollar signs: $\\frac{1}{2} = \\frac{2}{4}$
-
-Inline w/ double dollar signs: $$\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}$$
-
-Inline w/ backslash and square brackets \\[\\int_0^\\infty \\frac{1}{x^2} dx = \\infty\\]
-
-Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
-`, Ai.interfaceRole);
+                Ai.approveAction();
+            }
+        },
+        {
+            name: "deny",
+            description: Translation.tr("Deny the pending system action"),
+            execute: () => {
+                Ai.denyAction();
             }
         },
     ]
 
     function handleInput(inputText) {
         if (inputText.startsWith(root.commandPrefix)) {
-            // Handle special commands
             const command = inputText.split(" ")[0].substring(1);
             const args = inputText.split(" ").slice(1);
             const commandObj = root.allCommands.find(cmd => cmd.name === `${command}`);
@@ -213,8 +169,6 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
         } else {
             Ai.sendUserMessage(inputText);
         }
-
-        // Always scroll to bottom when user sends a message
         messageListView.positionViewAtEnd();
     }
 
@@ -284,7 +238,6 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
         spacing: root.padding
 
         Item {
-            // Messages
             Layout.fillWidth: true
             Layout.fillHeight: true
             layer.enabled: true
@@ -354,7 +307,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 vertical: true
             }
 
-            StyledListView { // Message list
+            StyledListView {
                 id: messageListView
                 z: 0
                 anchors.fill: parent
@@ -366,22 +319,16 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 mouseScrollFactor: Config.options.interactions.scrolling.mouseScrollFactor * 1.4
 
                 property int lastResponseLength: 0
+                add: null
 
-                add: null // Prevent function calls from being janky
-
+                // Um delegate por TURNO (várias mensagens de assistant + tool viram uma bolha)
                 model: ScriptModel {
-                    values: Ai.messageIDs.filter(id => {
-                        const message = Ai.messageByID[id];
-                        return message?.visibleToUser ?? true;
-                    })
+                    values: Ai.turnKeys
                 }
                 delegate: AiMessage {
                     required property var modelData
                     required property int index
-                    messageIndex: index
-                    messageData: {
-                        Ai.messageByID[modelData];
-                    }
+                    turnKey: modelData
                     messageInputField: root.inputField
                 }
             }
@@ -406,7 +353,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
             showArrows: root.suggestionList.length > 1
         }
 
-        FlowButtonGroup { // Suggestions
+        FlowButtonGroup {
             id: suggestions
             visible: root.suggestionList.length > 0 && messageInputField.text.length > 0
             property int selectedIndex: 0
@@ -462,7 +409,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
             }
         }
 
-        Rectangle { // Input area
+        Rectangle {
             id: inputWrapper
             property real spacing: 5
             Layout.fillWidth: true
@@ -487,7 +434,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 onRemove: Ai.attachFile("")
             }
 
-            RowLayout { // Input field and send button
+            RowLayout {
                 id: inputFieldRowLayout
                 anchors {
                     bottom: commandButtonsRow.top
@@ -504,7 +451,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                     clip: true
                     ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
-                    StyledTextArea { // The actual TextArea (inside ScrollView to enable scrolling)
+                    StyledTextArea {
                         id: messageInputField
                         anchors.fill: parent
                         wrapMode: TextArea.Wrap
@@ -515,7 +462,6 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                         background: null
 
                         onTextChanged: {
-                            // Handle suggestions
                             if (messageInputField.text.length === 0) {
                                 root.suggestionQuery = "";
                                 root.suggestionList = [];
@@ -532,10 +478,11 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                                     key: "name"
                                 });
                                 root.suggestionList = modelResults.map(model => {
+                                    const info = Ai.models[model.target] ?? {};
                                     return {
                                         name: `${messageInputField.text.trim().split(" ").length == 1 ? (root.commandPrefix + "model ") : ""}${model.target}`,
-                                        displayName: `${Ai.models[model.target].name}`,
-                                        description: `${Ai.models[model.target].description}`
+                                        displayName: info.name ?? model.target,
+                                        description: info.description ?? ""
                                     };
                                 });
                             } else if (messageInputField.text.startsWith(`${root.commandPrefix}prompt`)) {
@@ -622,42 +569,34 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                                 event.accepted = true;
                             } else if ((event.key === Qt.Key_Enter || event.key === Qt.Key_Return)) {
                                 if (event.modifiers & Qt.ShiftModifier) {
-                                    // Insert newline
                                     messageInputField.insert(messageInputField.cursorPosition, "\n");
                                     event.accepted = true;
                                 } else {
-                                    // Accept text
                                     const inputText = messageInputField.text;
                                     messageInputField.clear();
                                     root.handleInput(inputText);
                                     event.accepted = true;
                                 }
                             } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) {
-                                // Intercept Ctrl+V to handle image/file pasting
                                 if (event.modifiers & Qt.ShiftModifier) {
-                                    // Let Shift+Ctrl+V = plain paste
                                     messageInputField.text += Quickshell.clipboardText;
                                     event.accepted = true;
                                     return;
                                 }
-                                // Try image paste first
                                 const currentClipboardEntry = Cliphist.entries[0];
                                 const cleanCliphistEntry = StringUtils.cleanCliphistEntry(currentClipboardEntry);
                                 if (/^\d+\t\[\[.*binary data.*\d+x\d+.*\]\]$/.test(currentClipboardEntry)) {
-                                    // First entry = currently copied entry = image?
                                     decodeImageAndAttachProc.handleEntry(currentClipboardEntry);
                                     event.accepted = true;
                                     return;
                                 } else if (cleanCliphistEntry.startsWith("file://")) {
-                                    // First entry = currently copied entry = image?
                                     const fileName = decodeURIComponent(cleanCliphistEntry);
                                     Ai.attachFile(fileName);
                                     event.accepted = true;
                                     return;
                                 }
-                                event.accepted = false; // No image, let text pasting proceed
+                                event.accepted = false;
                             } else if (event.key === Qt.Key_Escape) {
-                                // Esc to detach file
                                 if (Ai.pendingFilePath.length > 0) {
                                     Ai.attachFile("");
                                     event.accepted = true;
@@ -668,7 +607,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                         }
                     }
                 }
-                RippleButton { // Send button
+                RippleButton {
                     id: sendButton
                     Layout.alignment: Qt.AlignBottom
                     Layout.rightMargin: 5
@@ -698,7 +637,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 }
             }
 
-            RowLayout { // Controls
+            RowLayout {
                 id: commandButtonsRow
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -721,7 +660,6 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 ]
 
                 ApiInputBoxIndicator {
-                    // Model indicator
                     icon: "api"
                     text: Ai.getModel().name
                     tooltipText: Translation.tr("Current model: %1\nSet it with %2model MODEL").arg(Ai.getModel().name).arg(root.commandPrefix)
@@ -768,11 +706,9 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 }
 
                 ButtonGroup {
-                    // Command buttons
                     padding: 0
 
                     Repeater {
-                        // Command buttons
                         model: commandButtonsRow.commandsShown
                         delegate: ApiCommandButton {
                             property string commandRepresentation: `${root.commandPrefix}${modelData.name}`

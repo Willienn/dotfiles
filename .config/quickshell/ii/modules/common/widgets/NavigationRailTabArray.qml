@@ -20,7 +20,7 @@ Item {
             left: tabBarColumn.left
             topMargin: itemHeight * root.currentIndex + (root.expanded ? 0 : ((itemHeight - baseHighlightHeight) / 2))
         }
-        radius: Appearance.rounding.full
+        radius: 2
         color: Appearance.colors.colSecondaryContainer
         implicitHeight: root.expanded ? itemHeight : baseHighlightHeight
         implicitWidth: tabBarColumn?.children[root.currentIndex]?.visualWidth ?? 100

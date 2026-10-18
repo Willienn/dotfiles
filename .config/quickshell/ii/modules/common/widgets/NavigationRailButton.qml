@@ -49,7 +49,7 @@ TabButton {
             anchors.left: itemIconBackground.left
             anchors.bottom: itemIconBackground.bottom
             implicitWidth: root.visualWidth
-            radius: Appearance.rounding.full
+            radius: 2
             color: toggled ? 
                 root.showToggledHighlight ?
                     (root.down ? Appearance.colors.colSecondaryContainerActive : root.hovered ? Appearance.colors.colSecondaryContainerHover : Appearance.colors.colSecondaryContainer)

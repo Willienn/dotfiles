@@ -199,7 +199,7 @@ Item {
                     property bool selected: root.protoFilter === modelData.id
                     implicitWidth: chipText.implicitWidth + 24
                     implicitHeight: 30
-                    radius: height / 2
+                    radius: 2
                     color: selected ? Appearance.m3colors.m3secondaryContainer : "transparent"
                     border.width: selected ? 0 : 1
                     border.color: Appearance.colors.colSubtext

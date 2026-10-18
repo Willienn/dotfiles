@@ -68,14 +68,14 @@ Item { // Bar content region
         }
 
         // Visual content
-        ScrollHint {
-            reveal: barLeftSideMouseArea.hovered
-            icon: Hyprsunset.gamma === 100 ? "light_mode" : "wb_twilight"
-            tooltipText: Translation.tr("Scroll to change brightness")
-            side: "left"
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-        }
+        // ScrollHint {
+        //     reveal: barLeftSideMouseArea.hovered
+        //     icon: Hyprsunset.gamma === 100 ? "light_mode" : "wb_twilight"
+        //     tooltipText: Translation.tr("Scroll to change brightness")
+        //     side: "left"
+        //     anchors.left: parent.left
+        //     anchors.verticalCenter: parent.verticalCenter
+        // }
 
         RowLayout {
             id: leftSectionRowLayout
@@ -89,13 +89,13 @@ Item { // Bar content region
                 colBackground: barLeftSideMouseArea.hovered ? Appearance.colors.colLayer1Hover : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
             }
 
-            ActiveWindow {
-                Layout.leftMargin: 10 + (leftSidebarButton.visible ? 0 : Appearance.rounding.screenRounding)
-                Layout.rightMargin: Appearance.rounding.screenRounding
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                visible: root.useShortenedForm === 0
-            }
+            // ActiveWindow {
+            //     Layout.leftMargin: 10 + (leftSidebarButton.visible ? 0 : Appearance.rounding.screenRounding)
+            //     Layout.rightMargin: Appearance.rounding.screenRounding
+            //     Layout.fillWidth: true
+            //     Layout.fillHeight: true
+            //     visible: root.useShortenedForm === 0
+            // }
         }
     }
 
@@ -212,14 +212,14 @@ Item { // Bar content region
         }
 
         // Visual content
-        ScrollHint {
-            reveal: barRightSideMouseArea.hovered
-            icon: "volume_up"
-            tooltipText: Translation.tr("Scroll to change volume")
-            side: "right"
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-        }
+        // ScrollHint {
+        //     reveal: barRightSideMouseArea.hovered
+        //     icon: "volume_up"
+        //     tooltipText: Translation.tr("Scroll to change volume")
+        //     side: "right"
+        //     anchors.right: parent.right
+        //     anchors.verticalCenter: parent.verticalCenter
+        // }
 
         RowLayout {
             id: rightSectionRowLayout
@@ -237,7 +237,7 @@ Item { // Bar content region
                 implicitWidth: indicatorsRowLayout.implicitWidth + 10 * 2
                 implicitHeight: indicatorsRowLayout.implicitHeight + 5 * 2
 
-                buttonRadius: Appearance.rounding.full
+                buttonRadius: 2
                 colBackground: barRightSideMouseArea.hovered ? Appearance.colors.colLayer1Hover : ColorUtils.transparentize(Appearance.colors.colLayer1Hover, 1)
                 colBackgroundHover: Appearance.colors.colLayer1Hover
                 colRipple: Appearance.colors.colLayer1Active

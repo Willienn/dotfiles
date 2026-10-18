@@ -44,7 +44,7 @@ Rectangle {
             Rectangle {
                 implicitWidth: 34
                 implicitHeight: 34
-                radius: width / 2
+                radius: 2
                 color: Qt.rgba(card.effectiveAccent.r, card.effectiveAccent.g, card.effectiveAccent.b, 0.16)
 
                 MaterialSymbol {

@@ -51,7 +51,7 @@ Rectangle {
                 visible: !root.showBreadcrumb
                 anchors.fill: parent
                 color: Appearance.colors.colLayer1
-                radius: Appearance.rounding.full
+                radius: 2
                 implicitWidth: addressInput.implicitWidth
                 implicitHeight: addressInput.implicitHeight
 

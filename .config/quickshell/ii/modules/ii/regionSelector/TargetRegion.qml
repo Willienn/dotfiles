@@ -50,7 +50,7 @@ Rectangle {
         sourceComponent: Rectangle {
             property real verticalPadding: 5
             property real horizontalPadding: 10
-            radius: 10
+            radius: 2
             color: root.colBackground
             border.width: 1
             border.color: Appearance.m3colors.m3outlineVariant

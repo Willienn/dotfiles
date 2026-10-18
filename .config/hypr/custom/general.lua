@@ -16,46 +16,51 @@ hl.monitor({
 hl.config({
 	general = {
 		-- Gaps and border
-        gaps_in = 0,
-        gaps_out = 4,
-        gaps_workspaces = 50,
-   col = {
-            active_border = "rgba(ef934dff)",
-            inactive_border = "rgba(3b403cff)",
-            nogroup_border_active = "rgba(f4b585ff)",
-            nogroup_border = "rgba(3b403cff)",
-        },
+		gaps_in = 0,
+		gaps_out = 2,
+		gaps_workspaces = 50,
+		col = {
+			active_border = "rgba(ef934dff)",
+			inactive_border = "rgba(3b403cff)",
+			nogroup_border_active = "rgba(f4b585ff)",
+			nogroup_border = "rgba(3b403cff)",
+		},
 	},
 	group = {
-        col = {
-            border_active = "rgba(ef934dff)",
-            border_inactive = "rgba(3b403cff)",
-            border_locked_active = "rgba(f16e65ff)",
-            border_locked_inactive = "rgba(3b403cff)",
-        },
-        groupbar = {
-			            enabled = true,
-            render_titles = false,
-            gradients = false,
-            indicator_height = 2,
-            font_size = 12,
-            text_color = "rgba(f4decdff)",
-            col = {
-                active = "rgba(ef934dff)",
-                inactive = "rgba(1e1f1eff)",
-                locked_active = "rgba(f16e65ff)",
-                locked_inactive = "rgba(1e1f1eff)",
-            },
-        },
-    },
+		col = {
+			border_active = "rgba(ef934dff)",
+			border_inactive = "rgba(3b403cff)",
+			border_locked_active = "rgba(f16e65ff)",
+			border_locked_inactive = "rgba(3b403cff)",
+		},
+		groupbar = {
+			enabled = true,
+			render_titles = false,
+			gradients = false,
+			indicator_height = 2,
+			font_size = 12,
+			text_color = "rgba(f4decdff)",
+			col = {
+				active = "rgba(ef934dff)",
+				inactive = "rgba(1e1f1eff)",
+				locked_active = "rgba(f16e65ff)",
+				locked_inactive = "rgba(1e1f1eff)",
+			},
+		},
+	},
 	decoration = {
 		-- 2 = circle, higher = squircle, 4 = very obvious squircle
-        rounding = 0,
-
+		rounding = 0,
 
 		blur = {
-			passes = 2,
+			enabled = false, -- ← opaco como o Firefox (layers da bar continuam com blur via rules.lua)
 		},
+		shadow = {
+			enabled = false, -- ← sem sombra, igual o tema flat
+		},
+		dim_inactive = true, -- (equivalente ao --tabs-discarded-title-opacity: 0.75)
+		dim_strength = 0.05,
+		dim_special = 0.2,
 	},
 	cursor = { inactive_timeout = 3 },
 	render = {

@@ -9,21 +9,43 @@ ApiStrategy {
     }
 
     function buildRequestData(model: AiModel, messages, systemPrompt: string, temperature: real, tools: list<var>, filePath: string) {
+        const convertedMessages = messages.map(message => {
+            const msg = {
+                "role": message.role,
+                "content": message.rawContent ?? "",
+            };
+
+            // Assistant message that requested tool calls
+            if (message.role === "assistant" && message.tool_calls && message.tool_calls.length > 0) {
+                msg.tool_calls = message.tool_calls;
+                // OpenAI: content must be null when tool_calls is present (if no text)
+                if (!msg.content || msg.content.length === 0) msg.content = null;
+            }
+
+            // Tool result message
+            if (message.role === "tool") {
+                msg.tool_call_id = message.tool_call_id ?? "";
+                // content already set from rawContent
+            }
+
+            return msg;
+        });
+
         let baseData = {
             "model": model.model,
             "messages": [
                 {role: "system", content: systemPrompt},
-                ...messages.map(message => {
-                    return {
-                        "role": message.role,
-                        "content": message.rawContent,
-                    }
-                }),
+                ...convertedMessages,
             ],
             "stream": true,
-            "tools": tools,
             "temperature": temperature,
         };
+
+        // Only include tools if non-empty (some servers reject empty arrays)
+        if (tools && tools.length > 0) {
+            baseData.tools = tools;
+        }
+
         return model.extraParams ? Object.assign({}, baseData, model.extraParams) : baseData;
     }
 
@@ -56,16 +78,12 @@ ApiStrategy {
             const responseContent = delta?.content || dataJson.message?.content;
             const responseReasoning = delta?.reasoning || delta?.reasoning_content;
 
-            // ---- Tool calls handling ----
+            // ---- Tool calls: accumulate all parallel calls ----
             if (delta?.tool_calls && delta.tool_calls.length > 0) {
                 for (const tc of delta.tool_calls) {
                     const idx = tc.index ?? 0;
                     if (!pendingToolCalls[idx]) {
-                        pendingToolCalls[idx] = {
-                            id: tc.id || "",
-                            name: tc.function?.name || "",
-                            args: ""
-                        };
+                        pendingToolCalls[idx] = { id: "", name: "", args: "" };
                     }
                     if (tc.id) pendingToolCalls[idx].id = tc.id;
                     if (tc.function?.name) pendingToolCalls[idx].name = tc.function.name;
@@ -73,20 +91,20 @@ ApiStrategy {
                 }
             }
 
-            // Detect finish_reason == "tool_calls" → emit function call
             const finishReason = dataJson.choices[0]?.finish_reason;
-            if (finishReason === "tool_calls" || (pendingToolCalls && Object.keys(pendingToolCalls).length > 0 && finishReason === "stop")) {
+            if (finishReason === "tool_calls"
+                || (pendingToolCalls && Object.keys(pendingToolCalls).length > 0 && finishReason === "stop")) {
                 const keys = Object.keys(pendingToolCalls).sort();
                 if (keys.length > 0) {
-                    const first = pendingToolCalls[keys[0]];
-                    let argsParsed = {};
-                    try { argsParsed = JSON.parse(first.args || "{}"); } catch (e) { argsParsed = {}; }
+                    const calls = keys.map(k => {
+                        const tc = pendingToolCalls[k];
+                        let argsParsed = {};
+                        try { argsParsed = JSON.parse(tc.args || "{}"); } catch (e) { argsParsed = {}; }
+                        return { id: tc.id, name: tc.name, args: argsParsed };
+                    });
                     pendingToolCalls = ({});
                     return {
-                        functionCall: {
-                            name: first.name,
-                            args: argsParsed
-                        },
+                        functionCalls: calls,
                         finished: true
                     };
                 }
@@ -128,20 +146,20 @@ ApiStrategy {
             if (dataJson.done) {
                 return { finished: true };
             }
-            
+
         } catch (e) {
             console.log("[AI] OpenAI: Could not parse line: ", e);
             message.rawContent += line;
             message.content += line;
         }
-        
+
         return {};
     }
-    
+
     function onRequestFinished(message) {
         return {};
     }
-    
+
     function reset() {
         isReasoning = false;
         pendingToolCalls = ({});

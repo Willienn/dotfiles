@@ -15,13 +15,26 @@ import Quickshell.Io
 Item {
     id: root
 
+    // Polling dos processos: 0 = pausado
+    readonly property var topIntervals: [2000, 5000, 10000, 0]
+    property int topIntervalIndex: 1
+    readonly property int topInterval: topIntervals[topIntervalIndex]
+
     property real padding: 4
     property bool isActive: SwipeView.view ? SwipeView.isCurrentItem : true
     readonly property int historySize: 60
 
     // Caminhos dos scripts, relativos a este arquivo
-    property string statsScript: Qt.resolvedUrl("monitor/stats.sh").toString().replace("file://", "")
-    property string topScript: Qt.resolvedUrl("monitor/top.sh").toString().replace("file://", "")
+    property string statsScript: decodeURIComponent(Qt.resolvedUrl("monitor/stats.sh").toString().replace("file://", ""))
+    property string topScript: decodeURIComponent(Qt.resolvedUrl("monitor/top.sh").toString().replace("file://", ""))
+
+    onIsActiveChanged: {
+    if (!isActive) {
+        prevTotal = 0;
+        prevIdle = 0;
+    }
+}
+
 
     // CPU
     property real cpuUsage: 0
@@ -153,13 +166,13 @@ Item {
         onTriggered: root.refreshStats()
     }
 
-    Timer {
-        interval: 5000
-        repeat: true
-        triggeredOnStart: true
-        running: root.isActive && root.visible
-        onTriggered: root.refreshTop()
-    }
+Timer {
+    interval: root.topInterval > 0 ? root.topInterval : 5000
+    repeat: true
+    triggeredOnStart: true
+    running: root.isActive && root.visible && root.topInterval > 0
+    onTriggered: root.refreshTop()
+}
 
     Process {
         id: statsProc
@@ -277,30 +290,64 @@ Item {
                         }
                         spacing: 6
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
+                       RowLayout {
+    Layout.fillWidth: true
+    spacing: 8
 
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: "Processos"
-                                color: Appearance.colors.colOnLayer1
-                            }
-                            StyledText {
-                                Layout.preferredWidth: 56
-                                horizontalAlignment: Text.AlignRight
-                                text: "CPU"
-                                font.pixelSize: Appearance.font.pixelSize.small
-                                color: Appearance.colors.colSubtext
-                            }
-                            StyledText {
-                                Layout.preferredWidth: 56
-                                horizontalAlignment: Text.AlignRight
-                                text: "RAM"
-                                font.pixelSize: Appearance.font.pixelSize.small
-                                color: Appearance.colors.colSubtext
-                            }
-                        }
+    StyledText {
+        text: "Processos"
+        color: Appearance.colors.colOnLayer1
+    }
+
+    Rectangle {
+        implicitWidth: pollRow.implicitWidth + 16
+        implicitHeight: 24
+        radius: 2
+        color: Appearance.m3colors.m3secondaryContainer
+
+        Row {
+            id: pollRow
+            anchors.centerIn: parent
+            spacing: 4
+
+            MaterialSymbol {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.topInterval > 0 ? "timer" : "pause"
+                iconSize: Appearance.font.pixelSize.normal
+                color: Appearance.m3colors.m3onSecondaryContainer
+            }
+            StyledText {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.topInterval > 0 ? `${root.topInterval / 1000}s` : "Pausado"
+                font.pixelSize: Appearance.font.pixelSize.small
+                color: Appearance.m3colors.m3onSecondaryContainer
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.topIntervalIndex = (root.topIntervalIndex + 1) % root.topIntervals.length
+        }
+    }
+
+    Item { Layout.fillWidth: true }
+
+    StyledText {
+        Layout.preferredWidth: 56
+        horizontalAlignment: Text.AlignRight
+        text: "CPU"
+        font.pixelSize: Appearance.font.pixelSize.small
+        color: Appearance.colors.colSubtext
+    }
+    StyledText {
+        Layout.preferredWidth: 56
+        horizontalAlignment: Text.AlignRight
+        text: "RAM"
+        font.pixelSize: Appearance.font.pixelSize.small
+        color: Appearance.colors.colSubtext
+    }
+}
 
                         Repeater {
                             model: root.topList

@@ -48,9 +48,10 @@ Scope { // Scope
             running = true;
         }
         stdout: StdioCollector {
-            onStreamFinished: {
-                pinWithFunnyHyprlandWorkaroundProc.hook(text);
-            }
+               onStreamFinished: {
+        if (pinWithFunnyHyprlandWorkaroundProc.hook)
+            pinWithFunnyHyprlandWorkaroundProc.hook(text);
+    }
         }
     }
 
@@ -153,21 +154,23 @@ Scope { // Scope
                     animation: Appearance.animation.elementMove.numberAnimation.createObject(this)
                 }
 
-                Keys.onPressed: (event) => {
-                    if (event.key === Qt.Key_Escape) {
-                        panelWindow.hide();
-                    }
-                    if (event.modifiers === Qt.ControlModifier) {
-                        if (event.key === Qt.Key_O) {
-                            panelWindow.extend = !panelWindow.extend;
-                        } else if (event.key === Qt.Key_D) {
-                            root.toggleDetach();
-                        } else if (event.key === Qt.Key_P) {
-                            root.togglePin();
-                        }
-                        event.accepted = true;
-                    }
-                }
+               Keys.onPressed: (event) => {
+    if (event.key === Qt.Key_Escape) {
+        panelWindow.hide();
+        event.accepted = true;
+    } else if (event.modifiers === Qt.ControlModifier) {
+        if (event.key === Qt.Key_O) {
+            panelWindow.extend = !panelWindow.extend;
+            event.accepted = true;
+        } else if (event.key === Qt.Key_D) {
+            root.toggleDetach();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_P) {
+            root.togglePin();
+            event.accepted = true;
+        }
+    }
+}
             }
         }
     }
@@ -195,8 +198,8 @@ Scope { // Scope
                     if (event.modifiers === Qt.ControlModifier) {
                         if (event.key === Qt.Key_D) {
                             root.toggleDetach();
+                            event.accepted = true;
                         }
-                        event.accepted = true;
                     }
                 }
             }

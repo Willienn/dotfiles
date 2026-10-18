@@ -98,7 +98,7 @@ Rectangle {
         CalendarHeaderButton {
             Layout.margins: 10
             Layout.rightMargin: 0
-            forceCircle: true
+            forceCircle: false
             downAction: () => {
                 root.setCollapsed(false);
             }
@@ -175,7 +175,7 @@ Rectangle {
             CalendarHeaderButton {
                 anchors.left: parent.left
                 anchors.top: parent.top
-                forceCircle: true
+                forceCircle: false
                 downAction: () => {
                     root.setCollapsed(true);
                 }
